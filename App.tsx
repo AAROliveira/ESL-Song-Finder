@@ -5,9 +5,10 @@ import FilterControls from './components/FilterControls';
 import SongGrid from './components/SongGrid';
 import SongDetailModal from './components/SongDetailModal';
 
-// IMPORTANT: Paste your new Google Script Web App URL here.
-// As long as this remains a placeholder, the app will fall back to using the local songs.json file.
-const SONGS_DATA_URL = 'PASTE_YOUR_NEW_WEB_APP_URL_HERE';
+// Your app is now pointing to your live Google Sheet API
+const SONGS_DATA_URL = 'https://script.google.com/macros/s/AKfycbxRd_UZpjwnFaGAjqtSsSIKb7wGjMUxUsaG3owqVRMtLiD8yEKfrseUZM64YNTbWZJR6g/exec';
+const FALLBACK_DATA_URL = '/songs.json';
+
 
 function App() {
     const [allSongs, setAllSongs] = useState<Song[]>([]);
@@ -21,30 +22,49 @@ function App() {
 
     useEffect(() => {
         const fetchSongs = async () => {
-            // If the placeholder URL is still in use, fetch the local file.
-            // Otherwise, use the provided Google Script URL.
-            const urlToFetch = SONGS_DATA_URL.startsWith('http')
-                ? SONGS_DATA_URL
-                : '/songs.json';
+            setIsLoading(true);
+            setError(null);
             
+            // Helper to clean and sanitize data from any source
+            const cleanData = (data: any[]): Song[] => {
+                return data.map((song, index) => ({
+                    id: song.id || `fallback-${index}`,
+                    title: song.title || 'No Title',
+                    artist: song.artist || 'Unknown Artist',
+                    level: song.level || '',
+                    grammar: song.grammar || '',
+                    vocab: song.vocab || '',
+                    theme: song.theme || '',
+                    youtubeLink: song.youtubeLink || '',
+                    notes: song.notes || ''
+                }));
+            }
+
             try {
-                const response = await fetch(urlToFetch);
+                const response = await fetch(SONGS_DATA_URL);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const data = await response.json();
-                setAllSongs(data);
+                setAllSongs(cleanData(data));
             } catch (e) {
-                let errorMessage = 'An unknown error occurred.';
-                if (e instanceof Error) {
-                    errorMessage = `Failed to fetch songs: ${e.message}.`;
+                console.error("Live URL failed, attempting fallback:", e);
+                setError(`Could not load from live data. Attempting to load local backup...`);
+                
+                // Try fallback if the live URL failed
+                try {
+                    const fallbackResponse = await fetch(FALLBACK_DATA_URL);
+                    if (!fallbackResponse.ok) {
+                        throw new Error(`Fallback HTTP error! status: ${fallbackResponse.status}`);
+                    }
+                    const fallbackData = await fallbackResponse.json();
+                    setAllSongs(cleanData(fallbackData));
+                    setError(null); // Clear the error as fallback was successful
+                } catch (fallbackError) {
+                    console.error("Fallback fetch error:", fallbackError);
+                    setError('Failed to load songs from live API and local fallback. Please check your connection and the app configuration.');
                 }
 
-                if (urlToFetch !== '/songs.json') {
-                    errorMessage += ' Please ensure your Google Script URL is correct and the sheet is publicly accessible.';
-                }
-
-                setError(errorMessage);
             } finally {
                 setIsLoading(false);
             }

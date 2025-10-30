@@ -1,6 +1,6 @@
 
 export interface Song {
-  id: number;
+  id: number | string;
   title: string;
   artist: string;
   level: string;
@@ -8,4 +8,5 @@ export interface Song {
   vocab: string;
   theme: string;
   youtubeLink: string;
+  notes?: string;
 }
