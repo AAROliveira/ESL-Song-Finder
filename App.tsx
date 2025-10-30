@@ -1,10 +1,13 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Song } from './types';
 import Header from './components/Header';
 import FilterControls from './components/FilterControls';
 import SongGrid from './components/SongGrid';
 import SongDetailModal from './components/SongDetailModal';
+
+// IMPORTANT: Paste your new Google Script Web App URL here.
+// As long as this remains a placeholder, the app will fall back to using the local songs.json file.
+const SONGS_DATA_URL = 'PASTE_YOUR_NEW_WEB_APP_URL_HERE';
 
 function App() {
     const [allSongs, setAllSongs] = useState<Song[]>([]);
@@ -18,19 +21,30 @@ function App() {
 
     useEffect(() => {
         const fetchSongs = async () => {
+            // If the placeholder URL is still in use, fetch the local file.
+            // Otherwise, use the provided Google Script URL.
+            const urlToFetch = SONGS_DATA_URL.startsWith('http')
+                ? SONGS_DATA_URL
+                : '/songs.json';
+            
             try {
-                const response = await fetch('/songs.json');
+                const response = await fetch(urlToFetch);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const data = await response.json();
                 setAllSongs(data);
             } catch (e) {
+                let errorMessage = 'An unknown error occurred.';
                 if (e instanceof Error) {
-                    setError(`Failed to fetch songs: ${e.message}`);
-                } else {
-                    setError('An unknown error occurred.');
+                    errorMessage = `Failed to fetch songs: ${e.message}.`;
                 }
+
+                if (urlToFetch !== '/songs.json') {
+                    errorMessage += ' Please ensure your Google Script URL is correct and the sheet is publicly accessible.';
+                }
+
+                setError(errorMessage);
             } finally {
                 setIsLoading(false);
             }
