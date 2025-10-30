@@ -1,0 +1,5 @@
+{
+  "name": "ESL Song Finder",
+  "description": "A utility for English teachers to find songs that use specific grammar or vocabulary. The app loads a local JSON database and allows for real-time filtering based on grammar, CEFR level, or vocabulary.",
+  "requestFramePermissions": []
+}
